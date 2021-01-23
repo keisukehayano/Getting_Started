@@ -1,20 +1,25 @@
-use actix_web::{ get, web };
+use actix_web::{ web };
 
+// HttpServerは、アプリケーションインスタンスではなく、アプリケーションファクトリを受け入れます。 
+// HttpServerは、スレッドごとにアプリケーションインスタンスを構築します。
+// したがって、アプリケーションデータは複数回作成する必要があります。
+// 異なるスレッド間でデータを共有する場合は、共有可能なオブジェクトを使用する必要があります。送信+同期。
 
-// アプリケーションの状態は、同じスコープ内のすべてのルートとリソースで共有されます。
-// 状態には、web :: Data <T>エクストラクタを使用してアクセスできます。
-// ここで、Tは状態のタイプです。ミドルウェアでも状態にアクセスできます。
+// 内部的には、web :: DataはArcを使用します。
+// したがって、2つのアークの作成を回避するには、App :: app_data（）を使用してデータを登録する前にデータを作成する必要があります。
 
-// 簡単なアプリケーションを作成し、アプリケーション名を次の状態で保存しましょう。
+// 次の例では、変更可能な共有状態のアプリケーションを作成します。
+// まず、状態を定義し、ハンドラーを作成します。
 
-// This struct represents state
-pub struct AppState {
-     pub app_name: String,
+use std::sync::Mutex;
+
+pub struct AppStateWithCounter {
+     pub counter: Mutex<i32>,      // スレッド間で安全にミューテーションするにはミューテックスが必要です
 }
 
-#[get("/")]
-pub async fn index(data: web::Data<AppState>) -> String {
-     let app_name = &data.app_name;     // <- get app_name
+pub async fn index(data: web::Data<AppStateWithCounter>) -> String {
+     let mut counter = data.counter.lock().unwrap();        // <- counterのMutexGuardを取得します
+     *counter += 1;                                         // <- MutexGuard内のアクセスカウンター
 
-     format!("Hello {}!", app_name)     // <- response with app_name
+     format!("Request number: {}", counter)                 // <- response with count
 }
