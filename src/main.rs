@@ -1,40 +1,24 @@
-use actix_web::{ web, App,  HttpServer };
+use actix_web::{ App, HttpServer };
 
 
 mod http_server;
 use crate::http_server::getting_started_server_1::index;
+use crate::http_server::getting_started_server_1::AppState;
 
-// actix-webは、Rustを使用してWebサーバーとアプリケーションを構築するためのさまざまなプリミティブを提供します。
-// ルーティング、ミドルウェア、要求の前処理、応答の後処理などを提供します。
-
-// すべてのactix-webサーバーは、Appインスタンスを中心に構築されています。
-// リソースとミドルウェアのルートを登録するために使用されます。
-// また、同じスコープ内のすべてのハンドラー間で共有されるアプリケーションの状態を格納します。
-
-// アプリケーションのスコープは、すべてのルートの名前空間として機能します。
-// つまり、特定のアプリケーションスコープのすべてのルートには、同じURLパスプレフィックスが付いています。
-// アプリケーションプレフィックスには、常に先頭の「/」スラッシュが含まれます。
-// 指定されたプレフィックスに先頭のスラッシュが含まれていない場合は、自動的に挿入されます。
-// プレフィックスは、値パスセグメントで構成されている必要があります。
-
-// スコープが/ appのアプリケーションの場合、パスが/ app、/ app /、または/ app / testのリクエストはすべて一致します。
-// ただし、パス/アプリケーションは一致しません。
-
+// アプリを初期化するときに状態を渡し、アプリケーションを起動します。
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
-        App::new().service(
-            // それに接続されているすべてのリソースとルートのプレフィックス...
-            web::scope("/app")
-                // ...したがって、これは `GET / app / index.html`のリクエストを処理します
-                .route("/index.html", web::get().to(index)),
-        )
+        App::new()
+            .data(AppState {
+                app_name: String::from("actix-web"),
+            })
+            .service(index)
     })
     .bind("127.0.0.1:8080")?
     .run()
     .await
 }
 
-// この例では、/ appプレフィックスとindex.htmlリソースを持つアプリケーションが作成されます。
-// このリソースは、/ app / index.htmlURLから入手できます。
+// アプリケーション内には、任意の数の状態タイプを登録できます。
