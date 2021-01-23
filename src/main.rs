@@ -1,24 +1,27 @@
-use actix_web::{ App, HttpServer };
-
+use actix_web::{ web, App, HttpServer };
+use std::sync::Mutex;
 
 mod http_server;
 use crate::http_server::getting_started_server_1::index;
-use crate::http_server::getting_started_server_1::AppState;
+use crate::http_server::getting_started_server_1::AppStateWithCounter;
 
-// アプリを初期化するときに状態を渡し、アプリケーションを起動します。
+// アプリにデータを登録します。
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    let counter = web::Data::new(AppStateWithCounter {
+        counter: Mutex::new(0),
+    });
+
+    HttpServer::new(move || {
+        // カウンターをクロージャーに移動します
         App::new()
-            .data(AppState {
-                app_name: String::from("actix-web"),
-            })
-            .service(index)
+        // 注：データの代わりにapp_dataを使用する
+        .app_data(counter.clone())      // <- register the created data
+        .route("/", web::get().to(index))
     })
     .bind("127.0.0.1:8080")?
     .run()
     .await
-}
 
-// アプリケーション内には、任意の数の状態タイプを登録できます。
+}
