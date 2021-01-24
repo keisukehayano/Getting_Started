@@ -1,27 +1,21 @@
 use actix_web::{ web, App, HttpServer };
 use std::sync::Mutex;
 
-mod http_server;
-use crate::http_server::getting_started_server_1::index;
-use crate::http_server::getting_started_server_1::AppStateWithCounter;
 
-// アプリにデータを登録します。
+// web :: scope（）メソッドを使用すると、リソースグループのプレフィックスを設定できます。
+// このスコープは、リソース構成によって追加されたすべてのリソースパターンの前に付加されるリソースプレフィックスを表します。
+// これは、同じリソース名を維持しながら、元の作成者が意図したものとは異なる場所に一連のルートをマウントするのに役立ちます。
+
+// For example:
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    let counter = web::Data::new(AppStateWithCounter {
-        counter: Mutex::new(0),
-    });
-
-    HttpServer::new(move || {
-        // カウンターをクロージャーに移動します
-        App::new()
-        // 注：データの代わりにapp_dataを使用する
-        .app_data(counter.clone())      // <- register the created data
-        .route("/", web::get().to(index))
-    })
-    .bind("127.0.0.1:8080")?
-    .run()
-    .await
-
+async fn main() {
+    let scope = web::scope("/users").service(show_users);
+    App::new().service(scope);
 }
+
+
+// 上記の例では、アプリケーションのスコープ引数がパターンの前に付加されるため、
+// show_usersルートの有効なルートパターンは/ showではなく/ users / showになります。
+// この場合、ルートはURLパスが/ users / showの場合にのみ一致し、
+// HttpRequest.url_for（）関数がルート名show_usersで呼び出されると、同じパスのURLが生成されます。
